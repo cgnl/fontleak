@@ -39,9 +39,19 @@ fontleak solve   <font> [-mode auto|checker|ligature|feistel] [-alphabet 0123456
 fontleak verify  <font> "PVIB{...}"     test whether the font accepts an input
 ```
 
-`<file>` may be a loose `.ttf`/`.otf`, or an OOXML document (`.docx`/`.pptx`/
-`.xlsx`); embedded fonts are unzipped and de-obfuscated automatically. When a
-document holds several fonts, the logic-bearing one (most GSUB lookups) is used.
+`<file>` may be:
+
+* a loose font: `.ttf`/`.otf`, **WOFF**, **WOFF2** (brotli), a TrueType
+  collection, or a dfont;
+* an **OOXML** document (`.docx`/`.pptx`/`.xlsx`): embedded fonts are unzipped and
+  de-obfuscated automatically;
+* a **PDF**: embedded font programs (FontFile/FontFile2/FontFile3) are extracted
+  and inflated;
+* a **CSS/HTML/SVG** file: `data:` URI fonts are base64-decoded.
+
+When a source holds several fonts, the logic-bearing one (most GSUB lookups) is
+used. (WOFF2 reconstruction keeps GSUB/cmap exactly; a transformed `glyf` table
+is replaced with empty outlines, so outline analysis is skipped for such fonts.)
 
 ## How it works, stage by stage
 

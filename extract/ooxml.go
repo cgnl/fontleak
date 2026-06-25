@@ -25,26 +25,33 @@ type fontEntry struct {
 	Embeds []embedRef
 }
 
-// FromFile loads a path and returns the recovered fonts. It auto-detects an
-// OOXML container (zip) versus a loose sfnt font file.
+// FromFile loads a path and returns the recovered fonts. It auto-detects OOXML
+// containers, loose font files (sfnt/WOFF/WOFF2/TTC), PDFs with embedded fonts,
+// and CSS/HTML/SVG with base64 data: URI fonts.
 func FromFile(p string) ([]Font, error) {
 	data, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
-	if sfntMagic(data) {
-		style := "Regular"
-		return []Font{{Name: strings.TrimSuffix(path.Base(p), path.Ext(p)), Style: style, Source: p, Data: data}}, nil
-	}
-	// Try as a zip container (docx/pptx/xlsx are zips).
+	base := strings.TrimSuffix(path.Base(p), path.Ext(p))
+
+	// OOXML / generic zip with embedded fonts.
 	if len(data) >= 2 && data[0] == 'P' && data[1] == 'K' {
-		fonts, err := FromOOXML(data, p)
-		if err != nil {
-			return nil, err
-		}
+		return FromOOXML(data, p)
+	}
+	// PDF with embedded font programs.
+	if len(data) >= 5 && string(data[:5]) == "%PDF-" {
+		return fontsFromPDF(data, p)
+	}
+	// A font container (sfnt, WOFF, WOFF2, TTC, dfont).
+	if sf, err := DecodeToSFNT(data); err == nil {
+		return []Font{{Name: base, Style: "Regular", Source: p, Data: sf}}, nil
+	}
+	// CSS/HTML/SVG carrying base64 data: URI fonts.
+	if fonts, err := fontsFromText(data, p); err == nil {
 		return fonts, nil
 	}
-	return nil, fmt.Errorf("%s: not an sfnt font nor a zip/OOXML container", p)
+	return nil, fmt.Errorf("%s: not a recognised font, document, PDF, or data: URI source", p)
 }
 
 // FromOOXML extracts and deobfuscates every embedded font referenced by a
