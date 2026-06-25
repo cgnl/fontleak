@@ -24,12 +24,14 @@ type checkpoint struct {
 	base      GID   // gid of g_<fam>0 (column glyphs are base..base+15)
 }
 
-// Invert recovers the secret string from the target column glyphs (the 44
-// glyphs the recognition rule expects, frame stripped). It returns the decoded
-// secret and whether inversion succeeded and round-trips.
-func (e *Engine) Invert(target []GID) (string, bool) {
+// Invert recovers the secret from the target column glyphs (the glyphs the
+// recognition rule expects, frame stripped). prefix/suffix are the literal frame
+// around the secret (e.g. "PVIB{" and "}"); the secret width and the per-column
+// alphabet size are derived from the font, not hard-coded.
+func (e *Engine) Invert(prefix, suffix string, target []GID) (string, bool) {
 	idx := e.nameIndex()
-	cks := e.checkpoints(idx)
+	width := len(target)
+	cks := e.checkpoints(idx, prefix, suffix, width)
 	if len(cks) < 2 {
 		return "", false
 	}
@@ -50,7 +52,7 @@ func (e *Engine) Invert(target []GID) (string, bool) {
 		prev := cks[r-1]
 		lo, hi := prev.orderIdx+1, cks[r].orderIdx+1
 		col := columnGlyphs(idx, prev.fam)
-		if col == ([16]GID{}) {
+		if len(col) == 0 {
 			return "", false
 		}
 		// forward maps a nibble vector (placed on prev's template) through this
@@ -73,7 +75,7 @@ func (e *Engine) Invert(target []GID) (string, bool) {
 		for i, p := range cks[r].positions {
 			want[i] = cur[p]
 		}
-		nib, ok := solveRound(forward, want, 16)
+		nib, ok := solveRound(forward, want, len(col))
 		if !ok {
 			return "", false
 		}
@@ -85,9 +87,12 @@ func (e *Engine) Invert(target []GID) (string, bool) {
 		cur = b
 	}
 
-	// cur is now the g_a column (checkpoint[0]); each glyph's nibble is the hex.
+	// cur is now the first column (checkpoint[0]); each glyph's index is the hex.
 	first := cks[0]
 	colA := columnGlyphs(idx, first.fam)
+	if len(colA) == 0 {
+		return "", false
+	}
 	rev := map[GID]int{}
 	for k, g := range colA {
 		rev[g] = k
@@ -104,13 +109,13 @@ func (e *Engine) Invert(target []GID) (string, bool) {
 }
 
 // checkpoints runs a reference input forward and records every clean column
-// state, with its frame template and the 44 column positions.
-func (e *Engine) checkpoints(idx map[string]GID) []checkpoint {
-	start := e.Glyphs("PVIB{" + strings.Repeat("0", 44) + "}")
+// state, with its frame template and the column positions.
+func (e *Engine) checkpoints(idx map[string]GID, prefix, suffix string, width int) []checkpoint {
+	start := e.Glyphs(prefix + strings.Repeat("0", width) + suffix)
 	var cks []checkpoint
 	for k := 0; k < e.NumOrder(); k++ {
 		buf := e.ForwardRange(start, 0, k+1)
-		fam, pos, ok := cleanState(e, buf)
+		fam, pos, ok := cleanState(e, buf, width)
 		if !ok {
 			continue
 		}
@@ -132,9 +137,9 @@ func (e *Engine) checkpoints(idx map[string]GID) []checkpoint {
 	return cks
 }
 
-// cleanState reports whether buf is frame + 44 single-column glyphs, returning
-// the column family and the positions of those glyphs.
-func cleanState(e *Engine, buf []GID) (byte, []int, bool) {
+// cleanState reports whether buf is frame + width single-column glyphs,
+// returning the column family and the positions of those glyphs.
+func cleanState(e *Engine, buf []GID, width int) (byte, []int, bool) {
 	fam := byte(0)
 	var pos []int
 	for i, g := range buf {
@@ -149,7 +154,7 @@ func cleanState(e *Engine, buf []GID) (byte, []int, bool) {
 			pos = append(pos, i)
 		}
 	}
-	if fam == 0 || len(pos) != 44 {
+	if fam == 0 || len(pos) != width {
 		return 0, nil, false
 	}
 	return fam, pos, true
@@ -178,15 +183,17 @@ func (e *Engine) nameIndex() map[string]GID {
 	return m
 }
 
-func columnGlyphs(idx map[string]GID, fam byte) [16]GID {
-	var col [16]GID
+// columnGlyphs returns the column's glyph variants ordered by hex value
+// (g_<fam>0, g_<fam>1, ..., g_<fam>F), deriving the alphabet size from the
+// variants that actually exist rather than assuming 16.
+func columnGlyphs(idx map[string]GID, fam byte) []GID {
+	var col []GID
 	for k := 0; k < 16; k++ {
-		name := "g_" + string(fam) + string(colHex[k])
-		g, ok := idx[name]
+		g, ok := idx["g_"+string(fam)+string(colHex[k])]
 		if !ok {
-			return [16]GID{}
+			break
 		}
-		col[k] = g
+		col = append(col, g)
 	}
 	return col
 }

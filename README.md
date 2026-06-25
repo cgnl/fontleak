@@ -90,9 +90,12 @@ Two inversion strategies, tried in order:
   cipher is full-diffusion (every output depends on every input), so search
   cannot crack it. But the cipher is built in GSUB as a sequence of rounds, and
   each round mixes only neighbouring positions. fontleak runs its own
-  lookup-by-lookup GSUB engine (validated against HarfBuzz), splits the pipeline
-  into rounds at the clean column states, inverts each round with a cheap local
-  search, and chains the inverses back to the typed input.
+  lookup-by-lookup GSUB engine (validated against HarfBuzz, including chained
+  context formats 1, 2 and 3), splits the pipeline into rounds at the clean
+  column states, inverts each round with a cheap local search, and chains the
+  inverses back to the typed input. The frame (the literal text around the
+  secret), the secret width and the per-column alphabet size are all derived from
+  the font, so this is not tied to one challenge's layout.
 
 ## Example: NEW_COASTER (PVIB CTF)
 

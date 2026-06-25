@@ -32,7 +32,7 @@ func SolveFeistel(face *gtfont.Face, r *gsub.Rules) CheckerResult {
 		target[i] = sim.GID(g)
 	}
 
-	secret, ok := e.Invert(target)
+	secret, ok := e.Invert(rec.Prefix, rec.Suffix, target)
 	if !ok {
 		res.Note = "white-box round inversion did not converge (cipher may not be a local-diffusion round cipher)"
 		return res

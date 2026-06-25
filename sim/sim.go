@@ -233,6 +233,68 @@ func (e *Engine) mapChained(buf []GID, s tables.ChainedContextualSubs) []GID {
 		return e.chainFmt3(buf, tables.ChainedSequenceContextFormat3(d))
 	case tables.ChainedContextualSubs1:
 		return e.chainFmt1(buf, tables.ChainedSequenceContextFormat1(d))
+	case tables.ChainedContextualSubs2:
+		return e.chainFmt2(buf, s.Cov(), tables.ChainedSequenceContextFormat2(d))
+	}
+	return buf
+}
+
+// chainFmt2 applies a class-based chained context. A glyph matches when it is in
+// the coverage and the backtrack/input/lookahead glyph classes match a rule.
+func (e *Engine) chainFmt2(buf []GID, cov tables.Coverage, d tables.ChainedSequenceContextFormat2) []GID {
+	class := func(cd tables.ClassDef, g GID) uint16 {
+		c, _ := cd.Class(tables.GlyphID(g))
+		return c
+	}
+	pos := 0
+	for pos < len(buf) {
+		applied := false
+		if _, ok := cov.Index(tables.GlyphID(buf[pos])); ok {
+			cls0 := class(d.InputClassDef, buf[pos])
+			if int(cls0) < len(d.ChainedClassSeqRuleSet) {
+				for _, r := range d.ChainedClassSeqRuleSet[cls0].ChainedSeqRules {
+					inLen := len(r.InputSequence) + 1
+					if pos+inLen > len(buf) {
+						continue
+					}
+					ok := true
+					for k, cl := range r.InputSequence {
+						if class(d.InputClassDef, buf[pos+1+k]) != cl {
+							ok = false
+							break
+						}
+					}
+					if ok {
+						for k, cl := range r.BacktrackSequence {
+							j := pos - 1 - k
+							if j < 0 || class(d.BacktrackClassDef, buf[j]) != cl {
+								ok = false
+								break
+							}
+						}
+					}
+					if ok {
+						for k, cl := range r.LookaheadSequence {
+							j := pos + inLen + k
+							if j >= len(buf) || class(d.LookaheadClassDef, buf[j]) != cl {
+								ok = false
+								break
+							}
+						}
+					}
+					if ok {
+						var grow int
+						buf, grow = e.applyRecords(buf, pos, r.SeqLookupRecords)
+						pos += inLen + grow
+						applied = true
+						break
+					}
+				}
+			}
+		}
+		if !applied {
+			pos++
+		}
 	}
 	return buf
 }
