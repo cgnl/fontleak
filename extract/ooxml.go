@@ -109,7 +109,7 @@ func FromOOXML(data []byte, source string) ([]Font, error) {
 			}
 			fnt := Font{Name: f.Name, Style: ref.Style, Source: source + "!" + zipPath}
 			if len(raw) == 0 {
-				fnt.Style = ref.Style + " (empty/0-byte — skipped)"
+				fnt.Style = ref.Style + " (empty/0-byte - skipped)"
 				out = append(out, fnt)
 				continue
 			}
@@ -120,7 +120,7 @@ func FromOOXML(data []byte, source string) ([]Font, error) {
 				continue
 			}
 			if LooksLikeKeyArtifact(deob) {
-				fnt.Style = ref.Style + " (empty — only XOR-key artifact)"
+				fnt.Style = ref.Style + " (empty - only XOR-key artifact)"
 				out = append(out, fnt)
 				continue
 			}

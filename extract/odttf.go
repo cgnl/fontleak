@@ -61,14 +61,14 @@ func guidKeyBytes(fontKey string) ([]byte, error) {
 // We implement that byte order directly: XOR position i (0..31) of the
 // little-endian view, i.e. data[i] ^ doubledLE[i], where doubledLE is the
 // doubled key written as the little-endian representation of the big-endian
-// integer — which is simply (key||key) reversed.
+// integer - which is simply (key||key) reversed.
 func Deobfuscate(data []byte, fontKey string) ([]byte, error) {
 	key, err := guidKeyBytes(fontKey)
 	if err != nil {
 		return nil, err
 	}
 	if len(data) == 0 {
-		return nil, fmt.Errorf("empty odttf (0 bytes) — nothing to deobfuscate")
+		return nil, fmt.Errorf("empty odttf (0 bytes) - nothing to deobfuscate")
 	}
 
 	out := make([]byte, len(data))

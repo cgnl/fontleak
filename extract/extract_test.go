@@ -75,7 +75,7 @@ func TestKeyArtifactDetection(t *testing.T) {
 	}
 }
 
-// Obfuscation is XOR — applying Deobfuscate twice must be the identity, so we
+// Obfuscation is XOR - applying Deobfuscate twice must be the identity, so we
 // can roundtrip any font through it.
 func TestDeobfuscateRoundtrip(t *testing.T) {
 	key := "{4C132B72-9393-604B-AA99-4EB2ABADE085}"

@@ -1,7 +1,7 @@
 // Package inspect performs static analysis of a parsed font: it surfaces
 // embedded strings, flag-shaped substrings, a summary of the GSUB "logic",
 // and glyphs that masquerade as other characters (identical outlines mapped to
-// different code points — the trick used to hide a flag in plain sight).
+// different code points - the trick used to hide a flag in plain sight).
 package inspect
 
 import (
@@ -130,7 +130,7 @@ func notable(strs []string) []string {
 }
 
 // findHomoglyphs reports code points whose glyph outline is byte-identical to
-// the glyph of a *different* code point — i.e. characters drawn as something
+// the glyph of a *different* code point - i.e. characters drawn as something
 // else. This is exactly how a flag can be hidden: a "garbage" glyph shares its
 // outline with a normal letter, or vice-versa.
 func findHomoglyphs(face *gtfont.Face, rules *gsub.Rules) []string {
@@ -203,7 +203,7 @@ func runesDisplay(rs []rune) string {
 func verdict(rep Report) []string {
 	var v []string
 	if rep.NumLookups > 50 {
-		v = append(v, fmt.Sprintf("GSUB contains %d lookups (%d ligatures) — far more than normal typography; this font likely encodes logic.", rep.NumLookups, rep.NumLigatures))
+		v = append(v, fmt.Sprintf("GSUB contains %d lookups (%d ligatures) - far more than normal typography; this font likely encodes logic.", rep.NumLookups, rep.NumLigatures))
 	}
 	if len(rep.FlagMatches) > 0 {
 		v = append(v, "Flag-shaped strings were found embedded in the font (see FlagMatches).")

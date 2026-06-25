@@ -49,8 +49,8 @@ func New(data []byte) (*Shaper, error) {
 }
 
 // Shape shapes text and returns the resulting glyph IDs. The "rlig" feature
-// (required ligatures) is explicitly enabled — both known font-CTF designs hide
-// their logic there — on top of HarfBuzz's default feature set.
+// (required ligatures) is explicitly enabled - both known font-CTF designs hide
+// their logic there - on top of HarfBuzz's default feature set.
 func (s *Shaper) Shape(text string) []GID {
 	buf := harfbuzz.NewBuffer()
 	runes := []rune(text)
@@ -124,7 +124,7 @@ func (s *Shaper) GlyphForRune(r rune) (GID, bool) {
 func (s *Shaper) RuneForGlyph(g GID) (rune, bool) { r, ok := s.g2c[g]; return r, ok }
 
 // SortedGlyphNames returns all glyph names referenced by the reverse cmap,
-// sorted — handy for diagnostics.
+// sorted - handy for diagnostics.
 func (s *Shaper) SortedGlyphNames() []string {
 	var out []string
 	for g := range s.g2c {

@@ -160,14 +160,14 @@ func Hints(rec Recognition, alphabet string, emptyCompanions []string) []string 
 	n := len(rec.Target)
 	h = append(h, fmt.Sprintf("Secret is %d symbol(s) over alphabet %q; confirm any guess with `verify`.", n, alphabet))
 	if alphabet == "0123456789abcdef" && n%2 == 0 {
-		h = append(h, fmt.Sprintf("That is %d hex digits = %d bytes — if recovered, try decoding hex→ASCII (flags sometimes spell words).", n, n/2))
+		h = append(h, fmt.Sprintf("That is %d hex digits = %d bytes - if recovered, try decoding hex→ASCII (flags sometimes spell words).", n, n/2))
 	}
 	h = append(h, "The cipher is strong/full-diffusion: black-box search can't invert it. "+
 		"Recover it by analysing the GSUB round structure (per-round S-boxes) statically, "+
 		"then inverting round-by-round.")
 	if len(emptyCompanions) > 0 {
 		h = append(h, "Companion font reference(s) are empty/missing here: "+strings.Join(emptyCompanions, ", ")+
-			". Usually a red herring, but some challenges split a key or second stage across styles — "+
+			". Usually a red herring, but some challenges split a key or second stage across styles - "+
 			"check whether yours should carry data (this file does not).")
 	}
 	return h
@@ -395,7 +395,7 @@ func expandReadable(r *gsub.Rules, g gsub.GID, depth int) string {
 		}
 		return b.String()
 	}
-	// A glyph that already has a readable character is a leaf — read it directly
+	// A glyph that already has a readable character is a leaf - read it directly
 	// rather than chasing a Single rule (the letter 'a' is itself an input to the
 	// hexchar->g_aX substitution, which we must not follow here).
 	if c, ok := r.Glyph2Char[g]; ok {

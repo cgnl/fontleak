@@ -1,7 +1,7 @@
 // Package gsub extracts substitution rules from a font's GSUB table into a
 // flat, reusable form: single (1->1), multiple (1->many) and ligature
 // (many->1) maps, plus helper mappings (glyph<->char). The contextual and
-// chained lookups are summarised but not flattened — they orchestrate the
+// chained lookups are summarised but not flattened - they orchestrate the
 // others rather than carrying data themselves.
 package gsub
 

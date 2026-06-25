@@ -55,7 +55,7 @@ func Scan(path string, opt Options) (string, error) {
 		}
 		b.WriteByte('\n')
 		if len(f.Data) == 0 {
-			fmt.Fprintf(&b, "   (no usable font data — skipped)\n\n")
+			fmt.Fprintf(&b, "   (no usable font data - skipped)\n\n")
 			continue
 		}
 		reportFont(&b, f, opt, emptyCompanions)
@@ -112,9 +112,17 @@ func reportFont(b *strings.Builder, f extract.Font, opt Options, emptyCompanions
 				fmt.Fprintf(b, "   ★ SOLVED: %s\n", res.Input)
 				fmt.Fprintf(b, "     %s\n", res.Note)
 			} else {
-				fmt.Fprintf(b, "   inversion: %s (oracle calls: %d)\n", res.Note, res.OracleCalls)
-				for _, hint := range solve.Hints(rec, opt.Alphabet, emptyCompanions) {
-					fmt.Fprintf(b, "   hint: %s\n", hint)
+				fmt.Fprintf(b, "   black-box inversion: %s (oracle calls: %d)\n", res.Note, res.OracleCalls)
+				// Strong round ciphers: try white-box lookup-by-lookup inversion.
+				fr := solve.SolveFeistel(face, rules)
+				if fr.Found {
+					fmt.Fprintf(b, "   ★ SOLVED (white-box round inversion): %s\n", fr.Input)
+					fmt.Fprintf(b, "     %s\n", fr.Note)
+				} else {
+					fmt.Fprintf(b, "   white-box inversion: %s\n", fr.Note)
+					for _, hint := range solve.Hints(rec, opt.Alphabet, emptyCompanions) {
+						fmt.Fprintf(b, "   hint: %s\n", hint)
+					}
 				}
 			}
 		}

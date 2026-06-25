@@ -1,5 +1,5 @@
 // Command fontleak analyses fonts (and the documents that embed them) for
-// hidden data and CTF-style "logic" — flag checkers and ligature puzzles.
+// hidden data and CTF-style "logic" - flag checkers and ligature puzzles.
 //
 // Usage:
 //
@@ -7,7 +7,7 @@
 //	fontleak extract <doc>  [-o dir]              dump deobfuscated fonts
 //	fontleak inspect <font>                       static analysis only
 //	fontleak shape   <font> "text"                forward shaping oracle
-//	fontleak solve   <font> [-mode auto|checker|ligature] [-alphabet hex]
+//	fontleak solve   <font> [-mode auto|checker|ligature|feistel] [-alphabet hex]
 //	fontleak verify  <font> "PVIB{...}"           does the font accept this input?
 package main
 
@@ -64,13 +64,13 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `fontleak — find hidden data & CTF logic in fonts
+	fmt.Fprint(os.Stderr, `fontleak - find hidden data & CTF logic in fonts
 
   fontleak scan    <file>                 extract+normalize+inspect+solve, full report
   fontleak extract <doc> [-o dir]         dump deobfuscated embedded fonts
   fontleak inspect <font>                 static analysis (strings, GSUB, homoglyphs)
   fontleak shape   <font> "text"          forward shaping oracle (input -> glyphs)
-  fontleak solve   <font> [-mode auto|checker|ligature] [-alphabet 0123456789abcdef]
+  fontleak solve   <font> [-mode auto|checker|ligature|feistel] [-alphabet 0123456789abcdef]
   fontleak verify  <font> "PVIB{...}"     test whether the font accepts an input
 `)
 }
@@ -230,15 +230,25 @@ func cmdSolve(args []string) error {
 	alphabet := "0123456789abcdef"
 	rest := parseFlags(args, map[string]*string{"-mode": &mode, "-alphabet": &alphabet})
 	if len(rest) < 1 {
-		return fmt.Errorf("usage: fontleak solve <font> [-mode auto|checker|ligature] [-alphabet ...]")
+		return fmt.Errorf("usage: fontleak solve <font> [-mode auto|checker|ligature|feistel] [-alphabet ...]")
 	}
-	data, _, rules, err := loadFace(rest[0])
+	data, face, rules, err := loadFace(rest[0])
 	if err != nil {
 		return err
 	}
 	sh, err := oracle.New(data)
 	if err != nil {
 		return err
+	}
+
+	if mode == "feistel" {
+		res := solve.SolveFeistel(face, rules)
+		if res.Found {
+			fmt.Printf("★ SOLVED: %s\n  %s\n", res.Input, res.Note)
+			return nil
+		}
+		fmt.Printf("feistel: %s\n", res.Note)
+		return nil
 	}
 
 	if mode == "auto" || mode == "checker" {
@@ -249,7 +259,16 @@ func cmdSolve(args []string) error {
 				fmt.Printf("★ SOLVED: %s\n  %s\n", res.Input, res.Note)
 				return nil
 			}
-			fmt.Printf("  %s (oracle calls: %d)\n", res.Note, res.OracleCalls)
+			fmt.Printf("  black-box: %s (oracle calls: %d)\n", res.Note, res.OracleCalls)
+			// Fall back to white-box round inversion for strong round ciphers.
+			if mode == "auto" {
+				if fr := solve.SolveFeistel(face, rules); fr.Found {
+					fmt.Printf("★ SOLVED (white-box round inversion): %s\n  %s\n", fr.Input, fr.Note)
+					return nil
+				} else {
+					fmt.Printf("  white-box: %s\n", fr.Note)
+				}
+			}
 		} else if mode == "checker" {
 			fmt.Println("no checker recognition rule found")
 		}
