@@ -91,6 +91,14 @@ func reportFont(b *strings.Builder, f extract.Font, opt Options, emptyCompanions
 	if len(rep.Homoglyphs) > 0 {
 		fmt.Fprintf(b, "   %d code-point group(s) share glyph outlines (confusables; run `inspect` for the list)\n", len(rep.Homoglyphs))
 	}
+	if len(rep.Remaps) > 0 {
+		fmt.Fprintf(b, "   %d character(s) render as a different glyph (cmap/homoglyph text hiding; run `decode`)\n", len(rep.Remaps))
+	}
+	for _, blob := range rep.Hidden {
+		if len(blob.Notes) > 0 {
+			fmt.Fprintf(b, "   hidden in %s: %s\n", blob.Origin, strings.Join(blob.Notes, "; "))
+		}
+	}
 	for _, v := range rep.Verdict {
 		fmt.Fprintf(b, "   • %s\n", v)
 	}

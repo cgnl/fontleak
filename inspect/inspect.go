@@ -24,6 +24,8 @@ type Report struct {
 	NumLookups   int
 	CmapEntries  int
 	Homoglyphs   []string // "char X is drawn identically to char Y" notes
+	Remaps       []string // code points whose glyph draws a different character
+	Hidden       []Blob   // non-standard tables / trailing data with decode notes
 	Verdict      []string // human-readable conclusions
 }
 
@@ -74,6 +76,8 @@ func Run(data []byte, face *gtfont.Face, rules *gsub.Rules) Report {
 	rep.Strings = notable(strs)
 
 	rep.Homoglyphs = findHomoglyphs(face, rules)
+	rep.Remaps = CmapRemaps(face, rules)
+	rep.Hidden = HiddenData(data)
 
 	rep.Verdict = verdict(rep)
 	return rep
@@ -207,6 +211,14 @@ func verdict(rep Report) []string {
 	}
 	if len(rep.FlagMatches) > 0 {
 		v = append(v, "Flag-shaped strings were found embedded in the font (see FlagMatches).")
+	}
+	if len(rep.Remaps) > 0 {
+		v = append(v, fmt.Sprintf("%d code point(s) render as a different character (cmap/homoglyph text hiding); use `decode`.", len(rep.Remaps)))
+	}
+	for _, blob := range rep.Hidden {
+		if len(blob.Notes) > 0 {
+			v = append(v, "Hidden data in "+blob.Origin+": "+strings.Join(blob.Notes, "; "))
+		}
 	}
 	if len(v) == 0 {
 		v = append(v, "Nothing obviously hidden detected by static analysis.")

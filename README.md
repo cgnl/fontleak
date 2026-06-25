@@ -37,6 +37,7 @@ fontleak inspect <font>                 static analysis (strings, GSUB, homoglyp
 fontleak shape   <font> "text"          forward shaping oracle (input to glyphs)
 fontleak solve   <font> [-mode auto|checker|ligature|feistel] [-alphabet 0123456789abcdef]
 fontleak verify  <font> "PVIB{...}"     test whether the font accepts an input
+fontleak decode  <font> ["text"]        reveal cmap/homoglyph-hidden text (what the font really draws)
 ```
 
 `<file>` may be:
@@ -62,8 +63,22 @@ is replaced with empty outlines, so outline analysis is skipped for such fonts.)
    example `GSUB` turned into `ykm|`) and their lengths falsified, so any parser
    can read them. Safe on already-valid fonts.
 3. **Inspect.** Embedded strings, flag-shaped substrings, a GSUB lookup summary,
-   and code points whose glyph outlines are identical (confusables).
+   confusable code points, plus hidden data beyond GSUB (below).
 4. **Solve.** Detects the checker / ligature design and recovers the secret.
+
+### Hidden data beyond GSUB
+
+Not every font hides its secret in shaping logic. fontleak also surfaces:
+
+* **cmap / homoglyph text hiding**, where the visible text differs from the
+  underlying bytes (a character is mapped to a glyph that draws a different
+  letter). `decode <font> "text"` shows what the font actually renders, and
+  `decode <font>` lists the remapped characters. The drawn letter is found by
+  matching each glyph's outline to a glyph whose *name* is that letter, so it is
+  immune to cmap tampering.
+* **Hidden tables and trailing data**: non-standard sfnt tables and bytes after
+  the last table are dumped, scanned for flag-shaped strings, and auto-decoded
+  (hex / base64 / zlib), reporting anything that yields printable text or a font.
 
 ### Solving a checker cipher
 

@@ -49,6 +49,8 @@ func main() {
 		err = cmdSolve(args)
 	case "verify":
 		err = cmdVerify(args)
+	case "decode":
+		err = cmdDecode(args)
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -72,6 +74,7 @@ func usage() {
   fontleak shape   <font> "text"          forward shaping oracle (input -> glyphs)
   fontleak solve   <font> [-mode auto|checker|ligature|feistel] [-alphabet 0123456789abcdef]
   fontleak verify  <font> "PVIB{...}"     test whether the font accepts an input
+  fontleak decode  <font> ["text"]        reveal cmap/homoglyph-hidden text (what the font really draws)
 `)
 }
 
@@ -191,6 +194,18 @@ func cmdInspect(args []string) error {
 		fmt.Printf("homoglyphs:\n")
 		for _, h := range rep.Homoglyphs {
 			fmt.Printf("  %s\n", h)
+		}
+	}
+	if len(rep.Remaps) > 0 {
+		fmt.Printf("cmap remaps (rendered text differs from code points):\n")
+		for _, r := range rep.Remaps {
+			fmt.Printf("  %s\n", r)
+		}
+	}
+	for _, blob := range rep.Hidden {
+		fmt.Printf("hidden blob: %s (%d bytes) preview=%q\n", blob.Origin, blob.Size, blob.Preview)
+		for _, n := range blob.Notes {
+			fmt.Printf("    %s\n", n)
 		}
 	}
 	if len(rep.Strings) > 0 {
@@ -327,6 +342,34 @@ func cmdVerify(args []string) error {
 		fmt.Println("result:   ✓ ACCEPTED (font renders a success phrase)")
 	} else {
 		fmt.Println("result:   ✗ rejected")
+	}
+	return nil
+}
+
+func cmdDecode(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: fontleak decode <font> [\"text\"]")
+	}
+	_, face, rules, err := loadFace(args[0])
+	if err != nil {
+		return err
+	}
+	if len(args) >= 2 {
+		// Show what the font visually renders for the given text.
+		rendered := inspect.DecodeRendered(face, rules, args[1])
+		fmt.Printf("typed:    %q\n", args[1])
+		fmt.Printf("rendered: %q\n", rendered)
+		return nil
+	}
+	// No text: list the cmap remaps (characters that draw something else).
+	remaps := inspect.CmapRemaps(face, rules)
+	if len(remaps) == 0 {
+		fmt.Println("no cmap/homoglyph remaps: the font draws characters as themselves")
+		return nil
+	}
+	fmt.Printf("%d character(s) render as a different glyph:\n", len(remaps))
+	for _, r := range remaps {
+		fmt.Printf("  %s\n", r)
 	}
 	return nil
 }
