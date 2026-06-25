@@ -14,7 +14,10 @@ archetypes:
   expects, identifies the success phrase, and recovers the secret.
 * **Ligature-collapse fonts.** The font chains typed characters into ligatures
   that collapse to a single glyph. fontleak reverses the ligature chains to
-  recover the hidden input string.
+  recover the hidden input strings, then auto-selects the real flag: the correct
+  input collapses to a glyph that *draws a readable letter* (the success signal),
+  and that letter is reachable from only one input while decoys are reachable
+  from many.
 
 Pure Go, no cgo. Built on [`go-text/typesetting`](https://github.com/go-text/typesetting),
 a pure-Go HarfBuzz port plus OpenType parser.
@@ -93,6 +96,21 @@ renders:  "Your Flag Is Correct"
 result:   ✓ ACCEPTED
 ```
 
+## Example: FONT LEAGUES (TFCCTF 2025)
+
+The sister challenge is a ligature-collapse font: typing the right flag makes it
+draw a big "O". fontleak recovers it without that hint.
+
+```
+$ fontleak solve -mode ligature Arial-custom.ttf
+★ LIGATURE-COLLAPSE SOLVED: typing this makes the font draw 'O' (the success glyph):
+  1f89a957a0816e3bea3fa026cd9a47cf181fb2c0e0c9e9442a2c783b01c083d2
+  ('O' is drawn by 1 input(s); other letters are decoys)
+```
+
+The font has 2091 ligatures and 413 inputs that collapse to a letter; 412 of
+them draw a decoy 'X', and exactly one draws the 'O' that the challenge rewards.
+
 ## Scope and limits
 
 * Extraction, normalization, inspection, checker and ligature detection, target
@@ -124,8 +142,8 @@ main.go    CLI
 go test ./...
 ```
 
-Tests run against the NEW_COASTER challenge artifacts when present: byte-exact
-deobfuscation versus the reference, normalization round-trip, the GSUB engine
-matching HarfBuzz exactly, checker detection and verification, black-box
-inversion of a synthetic tractable cipher, and full white-box recovery of the
-NEW_COASTER flag.
+Tests run against the challenge artifacts when present: byte-exact deobfuscation
+versus the reference, normalization round-trip, the GSUB engine matching HarfBuzz
+exactly, checker detection and verification, black-box inversion of a synthetic
+tractable cipher, full white-box recovery of the NEW_COASTER flag, and
+self-verified ligature recovery of the FONT LEAGUES flag.

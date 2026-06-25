@@ -128,9 +128,17 @@ func reportFont(b *strings.Builder, f extract.Font, opt Options, emptyCompanions
 		}
 	}
 
-	// Ligature-collapse font (FONT LEAGUES): expand final forms to candidates.
-	cands := solve.SolveLigature(rules, opt.LigatureMin, sh.GlyphName)
-	if len(cands) > 0 {
+	// Ligature-collapse font (FONT LEAGUES): a final form whose outline draws a
+	// readable letter is the success signal; the rare letter is the flag.
+	verified := solve.SolveLigatureVerified(face, rules, opt.LigatureMin)
+	if len(verified) > 0 {
+		counts := solve.LetterCount(verified)
+		top := verified[0]
+		fmt.Fprintf(b, "   LIGATURE-COLLAPSE detected: %d inputs collapse to a letter glyph\n", len(verified))
+		fmt.Fprintf(b, "   ★ SOLVED: typing this makes the font draw %q (success): %s\n", top.Draws, top.Expansion)
+		fmt.Fprintf(b, "     %q is drawn by %d input(s); other letters are decoys\n", top.Draws, counts[top.Draws])
+	} else {
+		cands := solve.SolveLigature(rules, opt.LigatureMin, sh.GlyphName)
 		shown := 0
 		for _, c := range cands {
 			tag := ""

@@ -275,10 +275,25 @@ func cmdSolve(args []string) error {
 	}
 
 	if mode == "auto" || mode == "ligature" {
-		cands := solve.SolveLigature(rules, 8, sh.GlyphName)
-		if len(cands) == 0 && mode == "ligature" {
-			fmt.Println("no ligature-collapse candidates found")
+		// Self-verifying recovery: a final form whose outline draws a readable
+		// letter is the font's success signal. The rare letter is the flag.
+		verified := solve.SolveLigatureVerified(face, rules, 16)
+		if len(verified) > 0 {
+			counts := solve.LetterCount(verified)
+			top := verified[0]
+			fmt.Printf("★ LIGATURE-COLLAPSE SOLVED: typing this makes the font draw %q (the success glyph):\n  %s\n",
+				top.Draws, top.Expansion)
+			fmt.Printf("  (%q is drawn by %d input(s); other letters are decoys)\n", top.Draws, counts[top.Draws])
+			return nil
 		}
+		cands := solve.SolveLigature(rules, 8, sh.GlyphName)
+		if len(cands) == 0 {
+			if mode == "ligature" {
+				fmt.Println("no ligature-collapse candidates found")
+			}
+			return nil
+		}
+		fmt.Printf("%d candidates; showing the longest hex ones (no single success glyph identified):\n", len(cands))
 		for i, c := range cands {
 			tag := ""
 			if c.AllHex {
