@@ -66,7 +66,10 @@ Two inversion strategies, tried in order:
   into rounds at the clean column states, inverts each round with a cheap local
   search, and chains the inverses back to the typed input.
 
-## Example: NEW_COASTER (TFCCTF 2025)
+## Example: NEW_COASTER (PVIB CTF)
+
+This challenge is from the [PVIB CTF](https://www.pvib.nl/actueel/evenementen/ctf-2)
+(hence the `PVIB{...}` flag format).
 
 ```
 $ fontleak scan NEW_COASTER.docx
