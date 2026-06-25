@@ -13,6 +13,7 @@
 package solve
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/cgnl/fontleak/gsub"
@@ -148,6 +149,28 @@ func SolveChecker(sh *oracle.Shaper, r *gsub.Rules, alphabet string) CheckerResu
 func Verify(sh *oracle.Shaper, input string) (rendered string, success bool) {
 	rendered = sh.ShapeText(input)
 	return rendered, readableContainsAny(rendered, successKeywords)
+}
+
+// Hints returns actionable next-steps when a checker was detected but the secret
+// could not be recovered by black-box inversion. They are deliberately neutral:
+// they describe what the structure implies and where additional data *might*
+// live, without asserting any particular resource is required.
+func Hints(rec Recognition, alphabet string, emptyCompanions []string) []string {
+	var h []string
+	n := len(rec.Target)
+	h = append(h, fmt.Sprintf("Secret is %d symbol(s) over alphabet %q; confirm any guess with `verify`.", n, alphabet))
+	if alphabet == "0123456789abcdef" && n%2 == 0 {
+		h = append(h, fmt.Sprintf("That is %d hex digits = %d bytes — if recovered, try decoding hex→ASCII (flags sometimes spell words).", n, n/2))
+	}
+	h = append(h, "The cipher is strong/full-diffusion: black-box search can't invert it. "+
+		"Recover it by analysing the GSUB round structure (per-round S-boxes) statically, "+
+		"then inverting round-by-round.")
+	if len(emptyCompanions) > 0 {
+		h = append(h, "Companion font reference(s) are empty/missing here: "+strings.Join(emptyCompanions, ", ")+
+			". Usually a red herring, but some challenges split a key or second stage across styles — "+
+			"check whether yours should carry data (this file does not).")
+	}
+	return h
 }
 
 // inverter inverts a (possibly triangular/avalanche) cipher using a shaping

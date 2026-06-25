@@ -40,6 +40,14 @@ func Scan(path string, opt Options) (string, error) {
 	fmt.Fprintf(&b, "# fontleak scan: %s\n", path)
 	fmt.Fprintf(&b, "Recovered %d embedded font reference(s).\n\n", len(fonts))
 
+	// Collect empty/missing companion fonts so a stuck solver can hint at them.
+	var emptyCompanions []string
+	for _, f := range fonts {
+		if len(f.Data) == 0 {
+			emptyCompanions = append(emptyCompanions, fmt.Sprintf("%s [%s]", f.Name, f.Style))
+		}
+	}
+
 	for _, f := range fonts {
 		fmt.Fprintf(&b, "── %s [%s] ", f.Name, f.Style)
 		if f.Source != "" {
@@ -50,13 +58,13 @@ func Scan(path string, opt Options) (string, error) {
 			fmt.Fprintf(&b, "   (no usable font data — skipped)\n\n")
 			continue
 		}
-		reportFont(&b, f, opt)
+		reportFont(&b, f, opt, emptyCompanions)
 		b.WriteByte('\n')
 	}
 	return b.String(), nil
 }
 
-func reportFont(b *strings.Builder, f extract.Font, opt Options) {
+func reportFont(b *strings.Builder, f extract.Font, opt Options, emptyCompanions []string) {
 	norm, nrep, err := sfnt.Normalize(f.Data)
 	if err != nil {
 		fmt.Fprintf(b, "   normalize: %v\n", err)
@@ -105,6 +113,9 @@ func reportFont(b *strings.Builder, f extract.Font, opt Options) {
 				fmt.Fprintf(b, "     %s\n", res.Note)
 			} else {
 				fmt.Fprintf(b, "   inversion: %s (oracle calls: %d)\n", res.Note, res.OracleCalls)
+				for _, hint := range solve.Hints(rec, opt.Alphabet, emptyCompanions) {
+					fmt.Fprintf(b, "   hint: %s\n", hint)
+				}
 			}
 		}
 	}
